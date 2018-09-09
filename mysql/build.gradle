@@ -1,0 +1,59 @@
+apply plugin: 'nu.studer.jooq'
+group 'cn.zenliu.jooq'
+version '0.0.1-SNAPSHOT'
+
+
+dependencies {
+    runtime('mysql:mysql-connector-java:8.0.11')
+    testRuntime('mysql:mysql-connector-java:8.0.11')
+    jooqRuntime('mysql:mysql-connector-java:8.0.11')
+}
+
+jooq {
+    version = '3.11.4'
+    model(sourceSets.main) {
+        jdbc {
+            driver = 'com.mysql.cj.jdbc.Driver'
+            url = 'jdbc:mysql://192.168.99.100:3306/test?useSSL=false&serverTimezone=CST'
+            user = 'cmnt'
+            password = 'cmnt'
+            /*properties {
+                property {
+                    key = 'ssl'
+                    value = 'true'
+                }
+            }*/
+        }
+        generator {
+            name = 'org.jooq.codegen.JavaGenerator'
+            strategy {
+                name = 'org.jooq.codegen.DefaultGeneratorStrategy'
+            }
+            database {
+                name = 'org.jooq.meta.mysql.MySQLDatabase'
+                inputSchema = 'test'
+                forcedTypes {
+                    forcedType {
+                        userType='com.fasterxml.jackson.databind.JsonNode'
+                        binding = 'cn.zenliu.jooq.ext.mysql.Json2JsonNodeBinding'
+                        expression = '.*'
+                        types = 'JSON'
+                    }
+                }
+            }
+            generate {
+                relations = true
+                deprecated = false
+                records = true
+                immutablePojos = true
+                fluentSetters = true
+                // ...
+            }
+            target {
+                packageName = 'cn.zenliu.jooq.ext.model'
+                directory = 'src/test/java'
+            }
+        }
+    }
+}
+
