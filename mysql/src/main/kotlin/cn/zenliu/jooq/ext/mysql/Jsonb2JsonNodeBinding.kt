@@ -1,4 +1,5 @@
-package cn.zenliu.jooq.postgres
+package package cn.zenliu.jooq.ext.postgres
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.jooq.*
