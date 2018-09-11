@@ -18,8 +18,8 @@ import java.util.*
  * @property jackson2ObjectMapper ObjectMapper
  * @constructor
  */
-//class Json2JsonNodeBinding(val jackson2ObjectMapper: ObjectMapper) : Binding<Any, JsonNode> {
-class Json2JsonNodeBinding(val jackson2ObjectMapper: ObjectMapper=ObjectMapper()) : Binding<String, JsonNode> {
+//class JsonJsonNodeBinding(val jackson2ObjectMapper: ObjectMapper) : Binding<Any, JsonNode> {
+class JsonJsonNodeBinding(val jackson2ObjectMapper: ObjectMapper=ObjectMapper()) : Binding<String, JsonNode> {
     override fun register(ctx: BindingRegisterContext<JsonNode>) {
         ctx.statement().registerOutParameter(ctx.index(), Types.VARCHAR)
     }

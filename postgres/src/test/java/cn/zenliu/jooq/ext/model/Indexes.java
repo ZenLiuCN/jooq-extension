@@ -9,13 +9,11 @@
 package cn.zenliu.jooq.ext.model;
 
 
-import cn.zenliu.jooq.ext.model.tables.Test;
-
-import javax.annotation.Generated;
-
 import org.jooq.Index;
 import org.jooq.OrderField;
 import org.jooq.impl.Internal;
+import cn.zenliu.jooq.ext.model.tables.Test;
+import javax.annotation.Generated;
 
 
 /**

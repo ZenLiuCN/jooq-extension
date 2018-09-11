@@ -35,7 +35,7 @@ jooq {
                 forcedTypes {
                     forcedType {
                         userType='com.fasterxml.jackson.databind.JsonNode'
-                        binding = 'cn.zenliu.jooq.ext.mysql.Json2JsonNodeBinding'
+                        binding = 'cn.zenliu.jooq.ext.mysql.JsonJsonNodeBinding'
                         expression = '.*'
                         types = 'JSON'
                     }

@@ -12,8 +12,15 @@ import org.jooq.impl.DSL
 import org.jooq.impl.DSL.field
 
 
-object JsonMySQLDSL {
+object JsonDSL {
     private var mapper: ObjectMapper? = null
+    /**
+     * Before use should set Jackson ObjectMapper
+     * @param m [ObjectMapper]
+     */
+    fun setMapper(m: ObjectMapper) {
+        this.mapper = m
+    }
     //<editor-fold desc="Inner function Factory">
 
     inline fun <reified N, K : Any, V : Any> entityOperatorFactory(clazz: Class<N>, oper: String, node: Field<JsonNode>, entity: Pair<K, V>, vararg more: Pair<K, V>) = field(
@@ -442,13 +449,7 @@ object JsonMySQLDSL {
         }
     }
 
-    /**
-     * Before use should set Jackson ObjectMapper
-     * @param m [ObjectMapper]
-     */
-    fun setMapper(m: ObjectMapper) {
-        this.mapper = m
-    }
+
 
     /**
      * chec path is vaild json path
@@ -515,4 +516,8 @@ object JsonMySQLDSL {
         BIT("BIT"),
         OPAQUE("OPAQUE"),
     }
+
+    class JsonPathErrorException(target:String?,message: String?="json path not vaild,should be $.\"pathstring\"[\"pathindex\"]\n path is ${target} " , throwable:Throwable?=null ) : Exception(message,throwable)
+    class JsonMapperErrorException(message: String?="mapper not set!" , throwable:Throwable?=null ) : Exception(message,throwable)
+
 }

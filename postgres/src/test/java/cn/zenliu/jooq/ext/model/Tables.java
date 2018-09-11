@@ -9,8 +9,8 @@
 package cn.zenliu.jooq.ext.model;
 
 
-import cn.zenliu.jooq.ext.model.tables.Test;
 
+import cn.zenliu.jooq.ext.model.tables.Test;
 import javax.annotation.Generated;
 
 
@@ -30,5 +30,5 @@ public class Tables {
     /**
      * The table <code>test.test</code>.
      */
-    public static final Test TEST_ = cn.zenliu.jooq.ext.model.tables.Test.TEST_;
+    public static final Test TEST_ = Test.TEST_;
 }

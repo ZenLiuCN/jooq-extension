@@ -1,3 +1,4 @@
+```kotlin
 @Support(SQLDialect.POSTGRES)
 fun Field<JsonElement>.jsonb(vararg key: Any) = DSL.field(
     key.joinToString("->", qualifiedName.toString().let {
@@ -144,3 +145,4 @@ private fun String.fixToText() = buildString {
     append(">")
     append(this@fixToText.subSequence(this@fixToText.lastIndexOf('>'), this@fixToText.length))
 }
+```

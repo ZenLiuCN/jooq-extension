@@ -9,14 +9,13 @@
 package cn.zenliu.jooq.ext.model;
 
 
-import cn.zenliu.jooq.ext.model.tables.Test;
 import cn.zenliu.jooq.ext.model.tables.records.TestRecord;
-
-import javax.annotation.Generated;
-
+import cn.zenliu.jooq.ext.model.tables.Test;
 import org.jooq.Identity;
 import org.jooq.UniqueKey;
 import org.jooq.impl.Internal;
+
+import javax.annotation.Generated;
 
 
 /**

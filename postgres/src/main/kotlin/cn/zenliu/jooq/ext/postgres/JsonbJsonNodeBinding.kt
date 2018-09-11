@@ -1,4 +1,9 @@
-package package cn.zenliu.jooq.ext.postgres
+/*
+ * Copyright (c) 2018.
+ * Authored By Zen.Liu
+ */
+
+package cn.zenliu.jooq.ext.postgres
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -9,8 +14,9 @@ import java.sql.SQLFeatureNotSupportedException
 import java.sql.Types
 import java.util.*
 
-@Allow(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
-class Jsonb2JsonNodeBinding(val mapper: ObjectMapper) : Binding<String, JsonNode> {
+@Allow(SQLDialect.POSTGRES)
+//class JsonbJsonNodeBinding(val mapper: ObjectMapper) : Binding<String, JsonNode> {
+class JsonbJsonNodeBinding(val mapper: ObjectMapper=ObjectMapper()) : Binding<String, JsonNode> {
     override fun converter(): Converter<String, JsonNode> = Converter.of(
             String::class.java,
             JsonNode::class.java,

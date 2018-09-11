@@ -1,3 +1,4 @@
 rootProject.name = 'jooq-extension'
 include 'mysql'
+include 'postgres'
 

@@ -5,17 +5,12 @@
 
 package cn.zenliu.jooq.ext.mysql
 
-import cn.zenliu.jooq.ext.model.Tables
-import com.fasterxml.jackson.databind.JsonNode
+import cn.zenliu.jooq.ext.model.model.Tables
 import org.jooq.DSLContext
-import org.jooq.Record1
-import org.jooq.Result
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import org.junit.jupiter.api.Test
 import java.sql.DriverManager
-import cn.zenliu.jooq.ext.mysql.JsonMySQLDSL.json
-import cn.zenliu.jooq.ext.mysql.JsonMySQLDSL.jsonText
 
 
 internal class JsonMySQLDSLTest {
@@ -45,8 +40,8 @@ internal class JsonMySQLDSLTest {
 
     @Test
     fun json_extract() {
-        val q1=JsonMySQLDSL.json_extract(T.JSON, "$.a").toString()
-        val q2=JsonMySQLDSL.json_extract(T.JSON, "a",1,2).toString()
+        val q1=JsonDSL.json_extract(T.JSON, "$.a").toString()
+        val q2=JsonDSL.json_extract(T.JSON, "a", 1, 2).toString()
         println(q1)
         println(q2)
         assert("\"test\".\"test\".\"json\" -> '\$.a'"==q1.toString())
@@ -55,8 +50,8 @@ internal class JsonMySQLDSLTest {
 
     @Test
     fun json_extract_unquote() {
-        val q1=JsonMySQLDSL.json_extract_text(T.JSON, "$.a").toString()
-        val q2=JsonMySQLDSL.json_extract_text(T.JSON, "a", 1).toString()
+        val q1=JsonDSL.json_extract_text(T.JSON, "$.a").toString()
+        val q2=JsonDSL.json_extract_text(T.JSON, "a", 1).toString()
         println(q1)
         println(q2)
         assert("\"test\".\"test\".\"json\" ->> '\$.a'"==q1.toString())
@@ -85,8 +80,8 @@ internal class JsonMySQLDSLTest {
 
     @Test
     fun json_set() {
-        val q1=JsonMySQLDSL.json_set(T.JSON, "$.a" to 1,"$.b" to "a").toString()
-        val q2=JsonMySQLDSL.json_set(T.JSON, "$.a" to 1).toString()
+        val q1=JsonDSL.json_set(T.JSON, "$.a" to 1, "$.b" to "a").toString()
+        val q2=JsonDSL.json_set(T.JSON, "$.a" to 1).toString()
         println(q1)
         println(q2)
         assert("""JSON_SET( "test"."test"."json" , '${'$'}.a' , 1 , '${'$'}.b' , 'a' )"""==q1.toString())
@@ -96,8 +91,8 @@ internal class JsonMySQLDSLTest {
 
     @Test
     fun json_remove() {
-        val q1=JsonMySQLDSL.json_remove(T.JSON,"$.a" ).toString()
-        val q2=JsonMySQLDSL.json_remove(T.JSON,"$.a" ,"$.c").toString()
+        val q1=JsonDSL.json_remove(T.JSON, "$.a" ).toString()
+        val q2=JsonDSL.json_remove(T.JSON, "$.a", "$.c").toString()
         println(q1)
         println(q2)
         assert("""JSON_REMOVE( "test"."test"."json" , '${'$'}.a' )"""==q1)
@@ -106,8 +101,8 @@ internal class JsonMySQLDSLTest {
 
     @Test
     fun json_replace() {
-        val q1=JsonMySQLDSL.json_replace(T.JSON,"$.a" to "a").toString()
-        val q2=JsonMySQLDSL.json_replace(T.JSON,"$.a" to 1 ,"$.c" to "a").toString()
+        val q1=JsonDSL.json_replace(T.JSON, "$.a" to "a").toString()
+        val q2=JsonDSL.json_replace(T.JSON, "$.a" to 1, "$.c" to "a").toString()
         println(q1)
         println(q2)
         assert("""JSON_REMOVE( "test"."test"."json" , '${'$'}.a' )"""==q1)
