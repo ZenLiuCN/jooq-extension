@@ -16,9 +16,9 @@ import java.util.*
 
 @Allow(SQLDialect.POSTGRES)
 //class JsonbJsonNodeBinding(val mapper: ObjectMapper) : Binding<String, JsonNode> {
-class JsonbJsonNodeBinding(val mapper: ObjectMapper=ObjectMapper()) : Binding<String, JsonNode> {
+class JsonbBinding(val mapper: ObjectMapper=ObjectMapper()) : Binding<Any, JsonNode> {
     override fun converter(): Converter<String, JsonNode> = Converter.of(
-            String::class.java,
+            Any::class.java,
             JsonNode::class.java,
             {
                 mapper.readTree(mapper.writeValueAsString(it))
