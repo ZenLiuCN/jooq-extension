@@ -13,7 +13,7 @@ import cn.zenliu.jooq.ext.model.Indexes;
 import cn.zenliu.jooq.ext.model.Keys;
 import cn.zenliu.jooq.ext.model.tables.records.TestRecord;
 
-import cn.zenliu.jooq.ext.mysql.JsonJsonNodeBinding;
+import cn.zenliu.jooq.ext.mysql.JsonBinding;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Arrays;
@@ -71,7 +71,7 @@ public class Test extends TableImpl<TestRecord> {
     /**
      * The column <code>test.test.json</code>.
      */
-    public final TableField<TestRecord, JsonNode> JSON = createField("json", org.jooq.impl.DefaultDataType.getDefaultDataType("\"test\".\"test_json\"").nullable(false), this, "", new JsonJsonNodeBinding());
+    public final TableField<TestRecord, JsonNode> JSON = createField("json", org.jooq.impl.DefaultDataType.getDefaultDataType("\"test\".\"test_json\"").nullable(false), this, "", new JsonBinding());
 
     /**
      * Create a <code>test.test</code> table reference

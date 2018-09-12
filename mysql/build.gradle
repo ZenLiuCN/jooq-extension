@@ -56,4 +56,4 @@ jooq {
         }
     }
 }
-
+compileJava.dependsOn -='generateModelJooqSchemaSource'

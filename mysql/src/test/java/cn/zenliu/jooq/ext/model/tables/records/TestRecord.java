@@ -4,7 +4,7 @@
 package cn.zenliu.jooq.ext.model.tables.records;
 
 
-import cn.zenliu.jooq.ext.model.model.tables.Test;
+import cn.zenliu.jooq.ext.model.tables.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

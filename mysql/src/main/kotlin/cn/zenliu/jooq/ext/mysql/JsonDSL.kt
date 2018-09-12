@@ -27,13 +27,13 @@ object JsonDSL {
         more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? , ?" else "$oper( ? , ? , ? ,", postfix = ")") { " ? , ? " },
         clazz,
         node,
-        *more.toMutableList().apply { add(entity) }.flatMap { listOf(pathCheck(pathJoin(it.first)), json_val(it.second)) }.toTypedArray())
+        *more.toMutableList().apply { add(0, entity) }.flatMap { listOf(pathCheck(pathJoin(it.first)), json_val(it.second)) }.toTypedArray())
 
     inline fun <reified N, V : Any> pathOperatorFactory(clazz: Class<N>, oper: String, node: Field<JsonNode>, entity: V, vararg more: V) = field(
         more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? " else "$oper( ? , ? , ", postfix = ")") { " ? " },
         clazz,
         node,
-        *more.toMutableList().apply { add(entity) }.map { pathCheck(pathJoin(it)) }.toTypedArray())
+        *more.toMutableList().apply { add(0, entity) }.map { pathCheck(pathJoin(it)) }.toTypedArray())
 
     inline fun <reified N, V : Any> pathEmptyableOperatorFactory(clazz: Class<N>, oper: String, node: Field<JsonNode>, vararg more: V) = field(
         more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ?  " else "$oper( ? ,", postfix = ")") { " ? " },
@@ -51,7 +51,12 @@ object JsonDSL {
         more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? " else "$oper( ? , ? , ", postfix = ")") { " ? " },
         clazz,
         node,
-        *more.toMutableList().apply { add(entity) }.map { json_val(it, tojson, convert) }.toTypedArray())
+        *more.toMutableList().apply { add(0, entity) }.map {
+            when (it) {
+                is Field<*> -> it
+                else -> json_val(it, tojson, convert)
+            }
+        }.toTypedArray())
 
     //</editor-fold>
     //<editor-fold desc="Functions">
@@ -79,17 +84,6 @@ object JsonDSL {
     fun json_merge_preserve(node: Field<JsonNode>, value: Any, vararg values: Any) =
             valueOperatorFactory<JsonNode, Any>(true, true, JsonNode::class.java, "JSON_MERGE_PRESERVE", node, value, *values)
 
-    @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
-    @JvmStatic
-    @Throws(JsonPathErrorException::class)
-    fun json_merge_patch(node: Field<JsonNode>, value: Field<JsonNode>, vararg values: Field<JsonNode>) =
-            valueOperatorFactory<JsonNode, Field<JsonNode>>(false, false, JsonNode::class.java, "JSON_MERGE_PATCH", node, value, *values)
-
-    @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
-    @JvmStatic
-    @Throws(JsonPathErrorException::class)
-    fun json_merge_preserve(node: Field<JsonNode>, value: Field<JsonNode>, vararg values: Field<JsonNode>) =
-            valueOperatorFactory<JsonNode, Field<JsonNode>>(false, false, JsonNode::class.java, "JSON_MERGE_PRESERVE", node, value, *values)
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
@@ -123,7 +117,7 @@ object JsonDSL {
         "? -> ?",
         JsonNode::class.java,
         node,
-        pathCheck(pathJoin(*more.toMutableList().apply { add(path) }.toTypedArray())))
+        pathCheck(pathJoin(*more.toMutableList().apply { add(0, path) }.toTypedArray())))
 
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
@@ -132,7 +126,7 @@ object JsonDSL {
     fun json_extract_text(node: Field<JsonNode>, path: Any, vararg more: Any) = field(
         "? ->> ?",
         JsonNode::class.java, node,
-        pathCheck(pathJoin(*more.toMutableList().apply { add(path) }.toTypedArray())))
+        pathCheck(pathJoin(*more.toMutableList().apply { add(0, path) }.toTypedArray())))
 
 
     /**
@@ -204,7 +198,7 @@ object JsonDSL {
         JsonNode::class.java,
         node,
         *  mutableListOf<String>().apply {
-            if (path.isNotBlank()) add(path)
+            if (path.isNotBlank()) add(pathCheck(path))
         }.toTypedArray()
     )
 
@@ -228,7 +222,7 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_contains_path(node: Field<JsonNode>, type: JSON_PATH_TYPE, vararg path: String) = field(
-        path.joinToString(",", prefix = "JSON_CONTAINS_PATH( ? , ? ", postfix = ")") { " ? , ? " },
+        path.joinToString(",", prefix = "JSON_CONTAINS_PATH( ? , ? ,", postfix = ")") { " ? " },
         Boolean::class.java,
         node,
         type.value,
@@ -308,25 +302,15 @@ object JsonDSL {
     fun json_object(vararg entity: Pair<String, Any>) = field(
         entity.joinToString(",", prefix = "JSON_OBJECT( ", postfix = ")") { " ? , ? " },
         JsonNode::class.java,
-        *entity.flatMap { listOf(pathCheck(pathJoin(it.first)), json_val(it.second)) }
+        *entity.flatMap {
+            listOf(it.first, when (it.second) {
+                is Field<*> -> it.second
+                else -> json_val(it.second)
+            })
+        }
             .toTypedArray()
     )
 
-    /**
-     * create json object
-     * @param entity Array<out Pair<String, [Field]<[JsonNode]>>>
-     * @return [Field]<[JsonNode]>
-     * @throws JsonPathErrorException
-     */
-    @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
-    @JvmStatic
-    @Throws(JsonPathErrorException::class)
-    fun json_object_node(vararg entity: Pair<String, Field<JsonNode>>) = field(
-        entity.joinToString(",", prefix = "JSON_OBJECT( ", postfix = ")") { " ? , ? " },
-        JsonNode::class.java,
-        *entity.flatMap { listOf(pathCheck(pathJoin(it.first)), it.second) }
-            .toTypedArray()
-    )
 
     /**
      *  create json array
@@ -340,22 +324,12 @@ object JsonDSL {
     fun json_array(vararg value: Any) = field(
         value.joinToString(",", prefix = "JSON_ARRAY( ", postfix = ")") { " ? " },
         JsonNode::class.java,
-        *value.map { json_val(it) }.toTypedArray()
-    )
-
-    /**
-     *  create json array
-     * @param value Array<out [Field]<[JsonNode]>>
-     * @return [Field]<[JsonNode]>
-     * @throws JsonPathErrorException
-     */
-    @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
-    @JvmStatic
-    @Throws(JsonPathErrorException::class)
-    fun json_array(vararg value: Field<JsonNode>) = field(
-        value.joinToString(",", prefix = "JSON_ARRAY( ", postfix = ")") { " ? " },
-        JsonNode::class.java,
-        *value.map { it }.toTypedArray()
+        *value.map {
+            when (it) {
+                is Field<*> -> it
+                else -> json_val(it)
+            }
+        }.toTypedArray()
     )
 
 
@@ -404,10 +378,13 @@ object JsonDSL {
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
-    fun json_objectagg(key: String, value: String) = field(
+    fun json_objectagg(key: String, value: Any) = field(
         "JSON_OBJECTAGG( ? , ? )",
         JsonNode::class.java,
-        key, value
+        key, when (value) {
+            is Field<*> -> value
+            else -> json_val(value)
+        }
     )
 
 /*    */
@@ -450,7 +427,6 @@ object JsonDSL {
     }
 
 
-
     /**
      * chec path is vaild json path
      * @param path String
@@ -482,10 +458,11 @@ object JsonDSL {
     fun json_val(a: Any, tojson: Boolean = true, convert: Boolean = true) = when (a) {
         is String -> DSL.escape(a, '\\')
         is Number -> a
+        is Boolean -> a
         else -> when {
             !convert -> a
-            tojson -> "CAST('${DSL.escape(mapper?.writeValueAsString(a)
-                                          ?: throw JsonMapperErrorException(), '\\')}' AS JSON)"
+//            tojson -> "CAST('${DSL.escape(mapper?.writeValueAsString(a)
+//                                          ?: throw JsonMapperErrorException(), '\\')}' AS JSON)"
             else -> DSL.escape(mapper?.writeValueAsString(a) ?: throw JsonMapperErrorException(), '\\')
         }
     }
@@ -493,6 +470,7 @@ object JsonDSL {
     //</editor-fold>
     //<editor-fold desc="Extentions">
     fun Field<JsonNode>.json(path: Any, vararg more: Any) = json_extract(this, path, *more)
+
     fun Field<JsonNode>.jsonText(path: Any, vararg more: Any) = json_extract_text(this, path, *more)
     fun Field<JsonNode>.jsonSet(path: Pair<String, Any>, vararg more: Pair<String, Any>) = json_set(this, path, *more)
     //</editor-fold>
@@ -500,6 +478,7 @@ object JsonDSL {
         ONE("one"),
         ALL("all"),
     }
+
     enum class JSON_TYPE(val value: String) {
         INT("INTEGER"),
         NULL("NULL"),
@@ -517,7 +496,7 @@ object JsonDSL {
         OPAQUE("OPAQUE"),
     }
 
-    class JsonPathErrorException(target:String?,message: String?="json path not vaild,should be $.\"pathstring\"[\"pathindex\"]\n path is ${target} " , throwable:Throwable?=null ) : Exception(message,throwable)
-    class JsonMapperErrorException(message: String?="mapper not set!" , throwable:Throwable?=null ) : Exception(message,throwable)
+    class JsonPathErrorException(target: String?, message: String? = "json path not vaild,should be $.\"pathstring\"[\"pathindex\"]\n path is ${target} ", throwable: Throwable? = null) : Exception(message, throwable)
+    class JsonMapperErrorException(message: String? = "mapper not set!", throwable: Throwable? = null) : Exception(message, throwable)
 
 }

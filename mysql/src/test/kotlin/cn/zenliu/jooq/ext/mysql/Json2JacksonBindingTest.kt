@@ -13,7 +13,7 @@ class Json2JacksonBindingTest {
     fun converter() {
         val jo = ObjectMapper()
         val src = mapOf("json" to "string", "int" to 0,"null" to null)
-        val mapper = Json2JsonNodeBinding(jo).converter()
+        val mapper = JsonBinding(jo).converter()
         mapper.from(src).let {
             println("${it}<=>${jo.writeValueAsString(src)}")
             assert(it.toString() == jo.readTree(jo.writeValueAsBytes(src)).toString())
