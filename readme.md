@@ -10,7 +10,7 @@ for code genatrate
 <forcedTypes>
     <forcedType>
         <userType>com.fasterxml.jackson.databind.JsonNode</userType>
-        <binding>cn.zenliu.jooq.ext.mysql.Json2JsonNodeBinding</binding>
+        <binding>cn.zenliu.jooq.ext.mysql.JsonBinding</binding>
         <expression>.*</expression>
         <types>JSON</types>
         <nullability>ALL</nullability>
