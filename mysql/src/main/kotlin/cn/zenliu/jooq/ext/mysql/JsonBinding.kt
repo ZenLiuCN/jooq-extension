@@ -19,7 +19,7 @@ import java.util.*
  * @constructor
  */
 //class JsonJsonNodeBinding(val jackson2ObjectMapper: ObjectMapper) : Binding<Any, JsonNode> {
-class JsonJsonNodeBinding(val jackson2ObjectMapper: ObjectMapper=ObjectMapper()) : Binding<String, JsonNode> {
+class JsonBinding(val jackson2ObjectMapper: ObjectMapper=ObjectMapper()) : Binding<Any, JsonNode> {
     override fun register(ctx: BindingRegisterContext<JsonNode>) {
         ctx.statement().registerOutParameter(ctx.index(), Types.VARCHAR)
     }
@@ -30,9 +30,9 @@ class JsonJsonNodeBinding(val jackson2ObjectMapper: ObjectMapper=ObjectMapper())
         ).sql("as json)")
     }
 
-    override fun converter(): Converter<String, JsonNode> = Converter
+    override fun converter(): Converter<Any, JsonNode> = Converter
         .of(
-            String::class.java,
+            Any::class.java,
             JsonNode::class.java,
             {
                 jackson2ObjectMapper.readTree(jackson2ObjectMapper.writeValueAsBytes(it))
