@@ -404,11 +404,17 @@ object JsonDSL {
         else -> path.joinToString("", prefix = "$") {
             when (it) {
                 is Int -> "[$it]"
-                else -> """."${DSL.escape(it.toString(), '\\')}""""
+                is String-> if(it.contains("""[^a-zA-Z\d]""".toRegex())){
+                    ".\"$it\""
+                }else{
+                    ".$it"
+                }
+                else ->  throw JsonPathErrorException(path.joinToString {ele-> ele.toString() })
             }
         }
     }
-
+    @JvmStatic
+    fun isPath(path:String)="""$([a-zA-Z. \" \_ \- ]*)""".toRegex().matches(path)
 
     /**
      * chec path is vaild json path
@@ -420,7 +426,7 @@ object JsonDSL {
     @Throws(JsonPathErrorException::class)
     fun pathCheck(path: String) =
             when {
-                !path.startsWith("$.") && !path.startsWith("$[") -> throw JsonPathErrorException(path)
+                !path.startsWith("$") -> throw JsonPathErrorException(path)
                 path.equals("$.") && path.equals("$[") -> throw JsonPathErrorException(path)
                 path.contains(".[") -> throw JsonPathErrorException(path)
                 path.contains("[\"") || path.contains("\"]") -> throw JsonPathErrorException(path)
