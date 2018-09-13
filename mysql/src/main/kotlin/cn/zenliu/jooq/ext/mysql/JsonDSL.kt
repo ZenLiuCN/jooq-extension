@@ -12,51 +12,47 @@ import org.jooq.impl.DSL
 import org.jooq.impl.DSL.field
 
 
+@Allow(SQLDialect.MYSQL_5_7)
 object JsonDSL {
-    private var mapper: ObjectMapper? = null
-    /**
-     * Before use should set Jackson ObjectMapper
-     * @param m [ObjectMapper]
-     */
-    fun setMapper(m: ObjectMapper) {
-        this.mapper = m
-    }
+    var mapper: ObjectMapper? = null
     //<editor-fold desc="Inner function Factory">
-
     inline fun <reified N, K : Any, V : Any> entityOperatorFactory(clazz: Class<N>, oper: String, node: Field<JsonNode>, entity: Pair<K, V>, vararg more: Pair<K, V>) = field(
-        more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? , ?" else "$oper( ? , ? , ? ,", postfix = ")") { " ? , ? " },
-        clazz,
-        node,
-        *more.toMutableList().apply { add(0, entity) }.flatMap { listOf(pathCheck(pathJoin(it.first)), json_val(it.second)) }.toTypedArray())
+            more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? , ?" else "$oper( ? , ? , ? ,", postfix = ")") { " ? , ? " },
+            clazz,
+            node,
+            *more.toMutableList().apply { add(0, entity) }.flatMap { listOf(pathCheck(pathJoin(it.first)), when(it.second){
+                is Field<*>->it.second
+                else->json_val(it.second)
+            }) }.toTypedArray())
 
     inline fun <reified N, V : Any> pathOperatorFactory(clazz: Class<N>, oper: String, node: Field<JsonNode>, entity: V, vararg more: V) = field(
-        more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? " else "$oper( ? , ? , ", postfix = ")") { " ? " },
-        clazz,
-        node,
-        *more.toMutableList().apply { add(0, entity) }.map { pathCheck(pathJoin(it)) }.toTypedArray())
+            more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? " else "$oper( ? , ? , ", postfix = ")") { " ? " },
+            clazz,
+            node,
+            *more.toMutableList().apply { add(0, entity) }.map { pathCheck(pathJoin(it)) }.toTypedArray())
 
     inline fun <reified N, V : Any> pathEmptyableOperatorFactory(clazz: Class<N>, oper: String, node: Field<JsonNode>, vararg more: V) = field(
-        more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ?  " else "$oper( ? ,", postfix = ")") { " ? " },
-        clazz,
-        node,
-        *more.toMutableList().map { pathCheck(pathJoin(it)) }.toTypedArray())
+            more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ?  " else "$oper( ? ,", postfix = ")") { " ? " },
+            clazz,
+            node,
+            *more.toMutableList().map { pathCheck(pathJoin(it)) }.toTypedArray())
 
     inline fun <reified N, V : Any> valueEmptyableOperatorFactory(tojson: Boolean, convert: Boolean, clazz: Class<N>, oper: String, node: Field<JsonNode>, vararg more: V) = field(
-        more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ?  " else "$oper( ? ,", postfix = ")") { " ? " },
-        clazz,
-        node,
-        *more.toMutableList().map { json_val(it, tojson, convert) }.toTypedArray())
+            more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ?  " else "$oper( ? ,", postfix = ")") { " ? " },
+            clazz,
+            node,
+            *more.toMutableList().map { json_val(it, tojson, convert) }.toTypedArray())
 
-    inline fun <reified N, V : Any> valueOperatorFactory(tojson: Boolean, convert: Boolean, clazz: Class<N>, oper: String, node: Field<JsonNode>, entity: V, vararg more: V) = field(
-        more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? " else "$oper( ? , ? , ", postfix = ")") { " ? " },
-        clazz,
-        node,
-        *more.toMutableList().apply { add(0, entity) }.map {
-            when (it) {
-                is Field<*> -> it
-                else -> json_val(it, tojson, convert)
-            }
-        }.toTypedArray())
+    inline fun <reified N, V : Any> valueOperatorFactory(tojson: Boolean, convert: Boolean, clazz: Class<N>, oper: String, node: Field<JsonNode>, value: V, vararg more: V) = field(
+            more.joinToString(",", prefix = if (more.isEmpty()) "$oper( ? , ? " else "$oper( ? , ? , ", postfix = ")") { " ? " },
+            clazz,
+            node,
+            *more.toMutableList().apply { add(0, value) }.map {
+                when (it) {
+                    is Field<*> -> it
+                    else -> json_val(it, tojson, convert)
+                }
+            }.toTypedArray())
 
     //</editor-fold>
     //<editor-fold desc="Functions">
@@ -102,7 +98,18 @@ object JsonDSL {
     @Throws(JsonPathErrorException::class)
     fun json_array_append(node: Field<JsonNode>, entity: Pair<String, Any>, vararg more: Pair<String, Any>) =
             entityOperatorFactory<JsonNode, String, Any>(JsonNode::class.java, "JSON_ARRAY_APPEND", node, entity, *more)
-
+    /**
+     * 数组插入
+     * @param node [Field]<[JsonNode]>
+     * @param value Array<out Pair<String, Any>> **Json path to Json Value**
+     * @return [Field]<[JsonNode]>
+     * @throws JsonPathErrorException
+     */
+    @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
+    @JvmStatic
+    @Throws(JsonPathErrorException::class)
+    fun json_array_insert(node: Field<JsonNode>, entity: Pair<String, Any>, vararg more: Pair<String, Any>) =
+            entityOperatorFactory<JsonNode, String, Any>(JsonNode::class.java, "JSON_ARRAY_INSERT", node, entity, *more)
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     @Throws(JsonPathErrorException::class)
@@ -114,19 +121,19 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_extract(node: Field<JsonNode>, path: Any, vararg more: Any) = field(
-        "? -> ?",
-        JsonNode::class.java,
-        node,
-        pathCheck(pathJoin(*more.toMutableList().apply { add(0, path) }.toTypedArray())))
+            "? -> ?",
+            JsonNode::class.java,
+            node,
+            pathCheck(pathJoin(*more.toMutableList().apply { add(0, path) }.toTypedArray())))
 
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_extract_text(node: Field<JsonNode>, path: Any, vararg more: Any) = field(
-        "? ->> ?",
-        JsonNode::class.java, node,
-        pathCheck(pathJoin(*more.toMutableList().apply { add(0, path) }.toTypedArray())))
+            "? ->> ?",
+            JsonNode::class.java, node,
+            pathCheck(pathJoin(*more.toMutableList().apply { add(0, path) }.toTypedArray())))
 
 
     /**
@@ -143,36 +150,28 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_type(node: Field<JsonNode>) = field(
-        "JSON_TYPE( ? )",
-        String::class.java,
-        node
+            "JSON_TYPE( ? )",
+            String::class.java,
+            node
     )
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_type(node: String) = field(
-        "JSON_TYPE( ? )",
-        String::class.java,
-        node
+            "JSON_TYPE( ? )",
+            String::class.java,
+            node
     )
 
-    @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
-    @JvmStatic
-    @Throws(JsonPathErrorException::class)
-    fun json_valid(node: Field<JsonNode>) = field(
-        "JSON_VALID( ? )",
-        Boolean::class.java,
-        node
-    )
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_valid(node: String) = field(
-        "JSON_VALID( ? )",
-        Boolean::class.java,
-        node
+            "JSON_VALID( ? )",
+            Boolean::class.java,
+            node
     )
 
 
@@ -180,41 +179,47 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_contains(node: Field<JsonNode>, value: Any, path: String = "") = field(
-        if (path.isNullOrBlank()) "JSON_CONTAINS( ? , ? )" else "JSON_CONTAINS( ? , ? , ?)",
-        Boolean::class.java,
-        node,
-        * mutableListOf(json_val(value)).apply {
-            if (path.isNotBlank()) {
-                add(pathCheck(path))
-            }
-        }.toTypedArray()
+            if (path.isNullOrBlank()) "JSON_CONTAINS( ? , ? )" else "JSON_CONTAINS( ? , ? , ?)",
+            Boolean::class.java,
+            node,
+            * mutableListOf(json_val(value)).apply {
+                if (path.isNotBlank()) {
+                    add(pathCheck(path))
+                }
+            }.toTypedArray()
     )
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_keys(node: Field<JsonNode>, path: String = "") = field(
-        if (path.isNullOrBlank()) "JSON_KEYS( ? )" else "JSON_KEYS( ? , ? )",
-        JsonNode::class.java,
-        node,
-        *  mutableListOf<String>().apply {
-            if (path.isNotBlank()) add(pathCheck(path))
-        }.toTypedArray()
+            if (path.isNullOrBlank()) "JSON_KEYS( ? )" else "JSON_KEYS( ? , ? )",
+            JsonNode::class.java,
+            node,
+            *  mutableListOf<String>().apply {
+                if (path.isNotBlank()) add(pathCheck(path))
+            }.toTypedArray()
     )
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_search(node: Field<JsonNode>, type: JSON_PATH_TYPE, value: String, escape_char: Char? = null, vararg path: String) = field(
-        path.joinToString(",", prefix = if (escape_char == null) "JSON_SEARCH( ? , ? , ? ," else "JSON_SEARCH( ? , ? , ? , ?", postfix = ")") { " ? " },
-        JsonNode::class.java,
-        node,
-        * mutableListOf<Any>(type.value, json_val(value)).apply {
-            if (escape_char != null) {
-                add(escape_char)
-            }
-            addAll(path)
-        }.toTypedArray()
+            path.joinToString(",", prefix = when {
+                escape_char == null && path.isEmpty() -> "JSON_SEARCH( ? , ? , ? "
+                escape_char != null && path.isEmpty() -> "JSON_SEARCH( ? , ? , ? , ? "
+                escape_char != null && path.isNotEmpty() -> "JSON_SEARCH( ? , ? , ? , ? ,"
+                else -> "JSON_SEARCH( ? , ? , ? ,"
+            }, postfix = ")") { " ? " },
+            JsonNode::class.java,
+            node,
+            * mutableListOf<Any>(type.value, json_val(value))
+                    .apply {
+                        if (escape_char != null) {
+                            add(escape_char)
+                        }
+                        addAll(path)
+                    }.toTypedArray()
     )
 
 
@@ -222,42 +227,23 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_contains_path(node: Field<JsonNode>, type: JSON_PATH_TYPE, vararg path: String) = field(
-        path.joinToString(",", prefix = "JSON_CONTAINS_PATH( ? , ? ,", postfix = ")") { " ? " },
-        Boolean::class.java,
-        node,
-        type.value,
-        * path.map { pathCheck(it) }.toTypedArray()
+            path.joinToString(",", prefix = "JSON_CONTAINS_PATH( ? , ? ,", postfix = ")") { " ? " },
+            Boolean::class.java,
+            node,
+            type.value,
+            * path.map { pathCheck(it) }.toTypedArray()
     )
 
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_depth(node: Field<JsonNode>) = field(
-        "JSON_DEPTH( ? )",
-        Int::class.java,
-        node
+            "JSON_DEPTH( ? )",
+            Int::class.java,
+            node
     )
 
-    /**
-     *
-     * @param node [Field]<[JsonNode]>
-     * @param value Array<out Pair<String, Any>> **Json path to Json Value**
-     * @return [Field]<[JsonNode]>
-     * @throws JsonPathErrorException
-     */
 
-    @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
-    @JvmStatic
-    @Throws(JsonPathErrorException::class)
-    fun json_array_insert(node: Field<JsonNode>, vararg value: Pair<String, Any>) = field(
-        value.joinToString(",", prefix = "JSON_ARRAY_INSERT( ?", postfix = ")") { " ? , ?" },
-        JsonNode::class.java,
-        node,
-        *value.map {
-            listOf(pathCheck(pathJoin(it.first)), json_val(it.second))
-        }.flatMap { it }
-            .toTypedArray()
-    )
 
     /**
      * convert value to json value
@@ -269,9 +255,9 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_quote(value: String) = field(
-        "JSON_QUOTE( ? )",
-        JsonNode::class.java,
-        value
+            "JSON_QUOTE( ? )",
+            JsonNode::class.java,
+            value
     )
 
     /**
@@ -285,9 +271,9 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_unquote(json_val: String) = field(
-        "JSON_UNQUOTE( ? )",
-        String::class.java,
-        json_val
+            "JSON_UNQUOTE( ? )",
+            String::class.java,
+            json_val
     )
 
     /**
@@ -300,15 +286,15 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_object(vararg entity: Pair<String, Any>) = field(
-        entity.joinToString(",", prefix = "JSON_OBJECT( ", postfix = ")") { " ? , ? " },
-        JsonNode::class.java,
-        *entity.flatMap {
-            listOf(it.first, when (it.second) {
-                is Field<*> -> it.second
-                else -> json_val(it.second)
-            })
-        }
-            .toTypedArray()
+            entity.joinToString(",", prefix = "JSON_OBJECT( ", postfix = ")") { " ? , ? " },
+            JsonNode::class.java,
+            *entity.flatMap {
+                listOf(it.first, when (it.second) {
+                    is Field<*> -> it.second
+                    else -> json_val(it.second)
+                })
+            }
+                    .toTypedArray()
     )
 
 
@@ -322,14 +308,14 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonPathErrorException::class)
     fun json_array(vararg value: Any) = field(
-        value.joinToString(",", prefix = "JSON_ARRAY( ", postfix = ")") { " ? " },
-        JsonNode::class.java,
-        *value.map {
-            when (it) {
-                is Field<*> -> it
-                else -> json_val(it)
-            }
-        }.toTypedArray()
+            value.joinToString(",", prefix = "JSON_ARRAY( ", postfix = ")") { " ? " },
+            JsonNode::class.java,
+            *value.map {
+                when (it) {
+                    is Field<*> -> it
+                    else -> json_val(it)
+                }
+            }.toTypedArray()
     )
 
 
@@ -340,7 +326,6 @@ object JsonDSL {
         @JvmStatic
         @Throws(JsonPathErrorException::class)
         fun json_table(node: Field<JsonNode>, vararg path: Any) = field(
-
         )*/
     /**
      *  only supported by MySql 5.7.22+
@@ -350,9 +335,9 @@ object JsonDSL {
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     fun json_arrayagg(col: String) = field(
-        "JSON_ARRAYAGG( ? )",
-        JsonNode::class.java,
-        col
+            "JSON_ARRAYAGG( ? )",
+            JsonNode::class.java,
+            col
     )
 
     /**
@@ -364,9 +349,9 @@ object JsonDSL {
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     fun json_arrayagg(col: SelectField<*>) = field(
-        "JSON_ARRAYAGG( ? )",
-        JsonNode::class.java,
-        col
+            "JSON_ARRAYAGG( ? )",
+            JsonNode::class.java,
+            col
     )
 
     /**
@@ -379,12 +364,12 @@ object JsonDSL {
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     fun json_objectagg(key: String, value: Any) = field(
-        "JSON_OBJECTAGG( ? , ? )",
-        JsonNode::class.java,
-        key, when (value) {
-            is Field<*> -> value
-            else -> json_val(value)
-        }
+            "JSON_OBJECTAGG( ? , ? )",
+            JsonNode::class.java,
+            key, when (value) {
+        is Field<*> -> value
+        else -> json_val(value)
+    }
     )
 
 /*    */
@@ -393,7 +378,6 @@ object JsonDSL {
      * @param value [SelectFieldOrAsterisk]
      * @return [Field]<[JsonNode]>
      *//*
-
     @Support(SQLDialect.MYSQL_5_7, SQLDialect.MYSQL_8_0)
     @JvmStatic
     fun json_objectagg(value: SelectFieldOrAsterisk) = field(
@@ -418,11 +402,10 @@ object JsonDSL {
             else -> throw JsonPathErrorException(path[0].toString())
         }*/
         else -> path.joinToString("", prefix = "$") {
-            """${when (it) {
+            when (it) {
                 is Int -> "[$it]"
                 else -> """."${DSL.escape(it.toString(), '\\')}""""
             }
-            }"""
         }
     }
 
@@ -456,7 +439,7 @@ object JsonDSL {
     @JvmStatic
     @Throws(JsonMapperErrorException::class)
     fun json_val(a: Any, tojson: Boolean = true, convert: Boolean = true) = when (a) {
-        is String -> DSL.escape(a, '\\')
+        is String ->  a.replace("\n","\\n")
         is Number -> a
         is Boolean -> a
         else -> when {
