@@ -12,35 +12,37 @@ import org.jooq.impl.DSL
 import java.sql.SQLFeatureNotSupportedException
 import java.sql.Types
 import java.util.*
-
 /**
- * Jooq binding for jsonToJacksonNode
- * @property jackson2ObjectMapper ObjectMapper
+ * Json to Jackson [JsonNode] mapper
+ * @property mapper ObjectMapper
  * @constructor
  */
-//class JsonJsonNodeBinding(val jackson2ObjectMapper: ObjectMapper) : Binding<Any, JsonNode> {
-class JsonBinding(val jackson2ObjectMapper: ObjectMapper=ObjectMapper()) : Binding<Any, JsonNode> {
+//@Allow(SQLDialect.MYSQL)
+class JsonBind : Binding<Any, JsonNode> {
     override fun register(ctx: BindingRegisterContext<JsonNode>) {
         ctx.statement().registerOutParameter(ctx.index(), Types.VARCHAR)
     }
 
     override fun sql(ctx: BindingSQLContext<JsonNode>) {
-        ctx.render().sql("cast(").visit(DSL.`val`(
-            ctx.convert(converter()))
-        ).sql("as json)")
+        ctx.render().visit(DSL.`val`(ctx.convert(converter()).value()))
     }
 
     override fun converter(): Converter<Any, JsonNode> = Converter
-        .of(
-            Any::class.java,
-            JsonNode::class.java,
-            {
-                jackson2ObjectMapper.readTree(jackson2ObjectMapper.writeValueAsBytes(it))
-            },
-            {
-                jackson2ObjectMapper.readValue(it.toString(), String::class.java)
-            }
-        )
+            .of(
+                    Any::class.java,
+                    JsonNode::class.java,
+                    {
+                        if (JsonDSL.mapper == null) throw JsonDSL.JsonMapperErrorException()
+                        JsonDSL.mapper?.readTree(
+                                JsonDSL.mapper?.writeValueAsBytes(it)
+                        )
+                    },
+                    {
+                        //                        if (JsonDSL.mapper == null) throw JsonDSL.JsonMapperErrorException()
+                        it?.toString() ?: NullNode.instance.toString()
+
+                    }
+            )
 
     override fun get(ctx: BindingGetResultSetContext<JsonNode>) {
         ctx.convert(converter()).value(ctx.resultSet().getString(ctx.index()))
