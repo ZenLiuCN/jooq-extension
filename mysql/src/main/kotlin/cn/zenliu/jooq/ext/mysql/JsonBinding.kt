@@ -39,7 +39,7 @@ class JsonBind : Binding<Any, JsonNode> {
                     },
                     {
                         //                        if (JsonDSL.mapper == null) throw JsonDSL.JsonMapperErrorException()
-                        it?.toString() ?: NullNode.instance.toString()
+                           it?.toString() ?: NullNode.instance.toString()
 
                     }
             )
